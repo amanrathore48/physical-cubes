@@ -52,13 +52,13 @@ export function createPhysicsWorld() {
   });
 
   // Configure the solver for better stability
-  world.solver.iterations = 10; // More iterations for more stable simulation
-  world.solver.tolerance = 0.01; // Lower tolerance for more precise solutions
+  world.solver.iterations = 20; // Increased iterations for more stable simulation (especially on mobile)
+  world.solver.tolerance = 0.005; // Lower tolerance for more precise solutions
 
   // Configure sleep properties to allow objects to rest
   world.allowSleep = true;
-  world.sleepTimeLimit = 1.0; // Time before sleeping (seconds)
-  world.sleepSpeedLimit = 0.1; // Speed limit before sleeping (m/s)
+  world.sleepTimeLimit = 0.5; // Reduced time before sleeping (seconds) for better mobile performance
+  world.sleepSpeedLimit = 0.15; // Increased speed limit before sleeping (m/s) to prevent premature sleep
 
   // Configure material properties
   // BOUNCE CONTROL: Lower restitution (bounciness) value makes objects less bouncy
@@ -421,7 +421,8 @@ export function addJointConstraint(
   position,
   constrainedBody,
   jointBody,
-  world
+  world,
+  isMobile = false
 ) {
   // Vector from body to clicked point
   const vector = new CANNON.Vec3()
@@ -442,6 +443,33 @@ export function addJointConstraint(
     jointBody,
     new CANNON.Vec3(0, 0, 0)
   );
+
+  // Configure constraint differently for mobile vs desktop
+  if (isMobile) {
+    // For mobile touch: more responsive but softer constraint
+    // This makes touch dragging feel more natural and less rigid
+    const eqs = constraint.equations;
+    if (eqs && eqs.length) {
+      eqs.forEach((eq) => {
+        // Use much softer parameters for mobile for a more natural "held" feel
+        // First parameter controls stiffness (lower = softer)
+        // Second parameter controls relaxation (higher = more damping)
+        eq.setSpookParams(1e6, 10, world.dt);
+      });
+    }
+    // Always allow collisions for more realistic touch behavior
+    constraint.collideConnected = true;
+  } else {
+    // For desktop: more precise and rigid constraint
+    const eqs = constraint.equations;
+    if (eqs && eqs.length) {
+      eqs.forEach((eq) => {
+        // Stiffer parameters for mouse control (more precise)
+        eq.setSpookParams(1e7, 3, world.dt);
+      });
+    }
+    constraint.collideConnected = false;
+  }
 
   // Add to world
   world.addConstraint(constraint);
@@ -475,9 +503,26 @@ export function removeJointConstraint(world, constraint) {
  * @returns {boolean} True if the user is on a mobile device
  */
 export function isMobileDevice() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
+  // First check the user agent
+  const userAgentCheck =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+
+  // Secondary checks to catch tablets and other edge cases
+  const touchCheck =
+    "ontouchstart" in window ||
+    navigator.maxTouchPoints > 0 ||
+    navigator.msMaxTouchPoints > 0;
+
+  // Screen size check (most phones are < 1024px width)
+  const smallScreen = window.innerWidth < 1024;
+
+  // Orientation available usually means mobile device
+  const orientationCheck = typeof window.orientation !== "undefined";
+
+  // Return true if either check passes (user agent is sufficient for most cases)
+  return userAgentCheck || (touchCheck && smallScreen) || orientationCheck;
 }
 
 /**
