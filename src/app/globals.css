@@ -3,9 +3,6 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
@@ -17,6 +14,22 @@
     --background: #0a0a0a;
     --foreground: #ededed;
   }
+}
+
+/* Enhanced styles for the Physical Cubes app */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-feature-settings: "ss01", "ss02", "ss03", "cv01", "cv02";
+  text-rendering: optimizeLegibility;
+}
+
+/* Make overlays look modern */
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 body {

@@ -418,16 +418,44 @@ export default function ThreeScene() {
 
   return (
     <>
-      {/* Debug overlay */}
-      <div className="fixed top-0 left-0 bg-black bg-opacity-70 text-white p-2 z-10 text-sm">
-        <h1 className="text-lg font-bold mb-1">ThreeJS Physics Demo</h1>
-        <p>Click and drag cubes to move them</p>
-        <p className="opacity-75">Drag across a cube to pick it up</p>
+      {/* Modern, minimal header overlay */}
+      <div className="fixed top-0 left-0 w-full z-10 p-4 md:p-6 flex justify-between items-center pointer-events-none">
+        <div className="bg-white bg-opacity-75 backdrop-blur-md rounded-xl shadow-lg p-4 max-w-md pointer-events-auto">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center shadow-inner">
+              <div className="w-4 h-4 bg-blue-300 rounded transform rotate-45"></div>
+            </div>
+            <h1 className="text-lg font-bold text-gray-800">Physical Cubes</h1>
+          </div>
+          <p className="text-sm text-gray-800 font-medium">
+            Click and drag cubes to interact with the physics simulation
+          </p>
+        </div>
+
+        {/* Controls panel */}
+        <div className="bg-white bg-opacity-75 backdrop-blur-md rounded-xl shadow-lg p-4 pointer-events-auto">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-green-500 pulse-animation"></div>
+              <span className="text-xs text-gray-800 font-medium">
+                Physics Active
+              </span>
+            </div>
+            <div className="text-xs text-gray-700 font-mono">
+              Three.js + Cannon.js
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Loading indicator */}
-      <div className="fixed top-0 right-0 bg-green-700 text-white p-2 z-10">
-        3D Scene Active
+      {/* Instructions that fade out after a few seconds */}
+      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-white bg-opacity-75 backdrop-blur-md rounded-xl shadow-lg p-4 z-10 text-center fade-out-animation">
+        <p className="text-gray-800 font-medium">
+          Drag across a cube to pick it up
+        </p>
+        <p className="text-gray-700 text-xs mt-1">
+          Throw objects to see physics in action
+        </p>
       </div>
 
       {/* Canvas container - must be full window */}
@@ -436,10 +464,45 @@ export default function ThreeScene() {
         className="fixed inset-0 w-full h-full"
         style={{
           overflow: "hidden",
-          background: "linear-gradient(to bottom, #87CEEB, #ffffff)",
+          background:
+            "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
         }}
         aria-label="3D interactive scene with draggable cubes"
       ></div>
+
+      {/* Add pulse and fade animations */}
+      <style jsx global>{`
+        .pulse-animation {
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0% {
+            opacity: 0.7;
+          }
+          50% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0.7;
+          }
+        }
+
+        .fade-out-animation {
+          animation: fadeOut 1s ease-in forwards;
+          animation-delay: 8s;
+        }
+
+        @keyframes fadeOut {
+          from {
+            opacity: 1;
+          }
+          to {
+            opacity: 0;
+            pointer-events: none;
+          }
+        }
+      `}</style>
     </>
   );
 }
