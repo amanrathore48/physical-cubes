@@ -21,6 +21,8 @@ import {
   moveJoint,
   removeJointConstraint,
   disposeResources,
+  isMobileDevice,
+  getNormalizedEventCoords,
 } from "../utils/threeHelpers";
 
 /**
@@ -119,11 +121,24 @@ export default function ThreeScene() {
       // Create movement plane for dragging
       movementPlane = createMovementPlane(scene);
 
-      // Event listeners
+      // Event listeners for both mouse and touch
       window.addEventListener("resize", handleResize);
+
+      // Standard pointer events
       window.addEventListener("pointerdown", handlePointerDown);
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp);
+
+      // Add specific touch events with passive: false to prevent scrolling
+      containerRef.current.addEventListener("touchstart", handlePointerDown, {
+        passive: false,
+      });
+      containerRef.current.addEventListener("touchmove", handlePointerMove, {
+        passive: false,
+      });
+      containerRef.current.addEventListener("touchend", handlePointerUp, {
+        passive: false,
+      });
 
       // Log that scene was initialized (for debugging)
       console.log("Three.js scene initialized");
@@ -220,10 +235,20 @@ export default function ThreeScene() {
       console.log(`Created ${physicsObjects.length} physics objects`);
     }
 
+    // Note: isMobileDevice and getNormalizedEventCoords have been moved to threeHelpers.js
+
     /**
      * Handle pointer down events - check for cube hits and start dragging
      */
     function handlePointerDown(event) {
+      // Prevent default to avoid scrolling on touch devices
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+
+      // Get normalized coordinates
+      const coords = getNormalizedEventCoords(event);
+
       // Try to find which cube was clicked
       let selectedCube = null;
       let hitPoint = null;
@@ -231,8 +256,8 @@ export default function ThreeScene() {
       // Test each cube for intersection
       for (const object of physicsObjects) {
         hitPoint = getHitPoint(
-          event.clientX,
-          event.clientY,
+          coords.clientX,
+          coords.clientY,
           object.mesh,
           camera,
           raycaster
@@ -262,6 +287,20 @@ export default function ThreeScene() {
         world
       );
 
+      // Optimize constraint settings for mobile
+      if (jointConstraint && isMobileDevice()) {
+        // Make constraint more relaxed for better touch interaction
+        jointConstraint.collideConnected = true;
+
+        // Adjust properties through the equations
+        const eqs = jointConstraint.equations;
+        if (eqs && eqs.length) {
+          eqs.forEach((eq) => {
+            eq.setSpookParams(1e6, 4, world.dt); // Less stiff for mobile
+          });
+        }
+      }
+
       // Set dragging state
       isDragging = true;
     }
@@ -272,10 +311,18 @@ export default function ThreeScene() {
     function handlePointerMove(event) {
       if (!isDragging) return;
 
+      // Prevent default to avoid scrolling on touch devices
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+
+      // Get normalized coordinates
+      const coords = getNormalizedEventCoords(event);
+
       // Get intersection with movement plane
       const hitPoint = getHitPoint(
-        event.clientX,
-        event.clientY,
+        coords.clientX,
+        coords.clientY,
         movementPlane,
         camera,
         raycaster
@@ -312,8 +359,16 @@ export default function ThreeScene() {
      * Animation loop function
      */
     function animate() {
-      // Step the physics world with smaller steps for better stability
-      world.fixedStep();
+      // Use optimized physics stepping based on device
+      if (isMobileDevice()) {
+        // For mobile: smaller time steps and multiple iterations for stability
+        const timeStep = 1 / 60;
+        const maxSubSteps = 3;
+        world.step(timeStep, world.dt, maxSubSteps);
+      } else {
+        // For desktop: use standard fixed step
+        world.fixedStep();
+      }
 
       // Sync the three.js meshes with the bodies
       for (let i = 0; i < physicsObjects.length; i++) {
@@ -390,6 +445,19 @@ export default function ThreeScene() {
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
+
+      // Clean up touch-specific events
+      if (containerRef.current) {
+        containerRef.current.removeEventListener(
+          "touchstart",
+          handlePointerDown
+        );
+        containerRef.current.removeEventListener(
+          "touchmove",
+          handlePointerMove
+        );
+        containerRef.current.removeEventListener("touchend", handlePointerUp);
+      }
 
       // Cancel animation frame
       cancelAnimationFrame(animationFrameId);

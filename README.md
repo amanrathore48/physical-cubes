@@ -48,6 +48,20 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `src/app/layout.js` - Root layout with metadata and global styles
 - `explanation.md` - Detailed explanation of the physics implementation
 
+## Physics Properties
+
+The physical properties of the cubes and their interactions can be adjusted in `threeHelpers.js`:
+
+### Bounce Control
+
+To adjust how bouncy the cubes are, look for these properties:
+
+- `restitution` - Controls bounciness (lower values = less bounce)
+- `linearDamping` and `angularDamping` - Control how quickly objects lose energy
+- `contactEquationRelaxation` - Affects how contacts between objects are resolved
+
+All bounce-related properties are marked with `// BOUNCE CONTROL` comments in the code.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

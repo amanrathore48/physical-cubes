@@ -61,7 +61,8 @@ export function createPhysicsWorld() {
   world.sleepSpeedLimit = 0.1; // Speed limit before sleeping (m/s)
 
   // Configure material properties
-  world.defaultContactMaterial.restitution = 0.4; // Moderate bounciness
+  // BOUNCE CONTROL: Lower restitution (bounciness) value makes objects less bouncy
+  world.defaultContactMaterial.restitution = 0.2; // Low default bounciness
   world.defaultContactMaterial.friction = 0.7; // Good friction
   world.defaultContactMaterial.contactEquationStiffness = 1e7; // More stable contacts
   world.defaultContactMaterial.contactEquationRelaxation = 3; // Relaxation for stability
@@ -71,24 +72,26 @@ export function createPhysicsWorld() {
   const floorMaterial = new CANNON.Material("floor");
 
   // Create a contact material for better cube-floor interactions
+  // BOUNCE CONTROL: Lower restitution value for cube-floor makes cubes bounce less against the floor
   const cubeFloorContactMaterial = new CANNON.ContactMaterial(
     cubeMaterial,
     floorMaterial,
     {
       friction: 0.8, // High friction with floor
-      restitution: 0.2, // Low bounce with floor
+      restitution: 0.1, // Very low bounce with floor (reduced from 0.2)
       contactEquationStiffness: 1e8, // Very stable floor contacts
       contactEquationRelaxation: 3, // Good relaxation
     }
   );
 
   // Create cube-to-cube contact material
+  // BOUNCE CONTROL: Lower restitution value for cube-cube makes cubes bounce less against each other
   const cubeCubeContactMaterial = new CANNON.ContactMaterial(
     cubeMaterial,
     cubeMaterial,
     {
       friction: 0.4, // Lower friction between cubes
-      restitution: 0.6, // More bounce between cubes
+      restitution: 0.3, // Reduced bounce between cubes (reduced from 0.6)
       contactEquationStiffness: 1e7, // Stable cube-cube contacts
       contactEquationRelaxation: 5, // More relaxation for cube collisions
     }
@@ -139,8 +142,9 @@ export function createCube(scene, world, position, color = 0xffffff, size = 2) {
   });
 
   // Add physics properties for better behavior with pointer interaction
-  body.linearDamping = 0.5; // Balanced linear damping
-  body.angularDamping = 0.7; // Good angular damping for stability without feeling too restricted
+  // BOUNCE CONTROL: Higher damping values reduce the energy in the system, making objects settle faster
+  body.linearDamping = 0.6; // Increased linear damping to reduce motion (was 0.5)
+  body.angularDamping = 0.8; // Increased angular damping for less rotation (was 0.7)
   body.allowSleep = true; // Allow objects to sleep when inactive for performance
 
   // Add to physics world
@@ -463,5 +467,35 @@ export function moveJoint(position, jointBody, constraint) {
 export function removeJointConstraint(world, constraint) {
   if (constraint) {
     world.removeConstraint(constraint);
+  }
+}
+
+/**
+ * Helper to detect if running on mobile device
+ * @returns {boolean} True if the user is on a mobile device
+ */
+export function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+}
+
+/**
+ * Get normalized coordinates from any pointer/touch event
+ * @param {Event} event - The pointer or touch event
+ * @returns {Object} Object with clientX and clientY properties
+ */
+export function getNormalizedEventCoords(event) {
+  // Handle both touch and mouse events
+  if (event.touches && event.touches.length > 0) {
+    return {
+      clientX: event.touches[0].clientX,
+      clientY: event.touches[0].clientY,
+    };
+  } else {
+    return {
+      clientX: event.clientX,
+      clientY: event.clientY,
+    };
   }
 }
